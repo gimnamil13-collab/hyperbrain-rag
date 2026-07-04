@@ -28,14 +28,27 @@ export type Conversation = {
   updated_at: string;
 };
 
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? "";
+
+function apiHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { ...extra };
+  if (API_KEY) {
+    headers["X-API-Key"] = API_KEY;
+  }
+  return headers;
+}
+
 export async function fetchDocuments() {
-  const res = await fetch(`${API_BASE}/api/documents`);
+  const res = await fetch(`${API_BASE}/api/documents`, { headers: apiHeaders() });
   if (!res.ok) throw new Error("Failed to load documents");
   return res.json() as Promise<{ documents: DocumentItem[]; total: number }>;
 }
 
 export async function ingestSamples() {
-  const res = await fetch(`${API_BASE}/api/documents/samples`, { method: "POST" });
+  const res = await fetch(`${API_BASE}/api/documents/samples`, {
+    method: "POST",
+    headers: apiHeaders(),
+  });
   if (!res.ok) {
     const detail = await res.text();
     throw new Error(detail || "Sample ingest failed");
@@ -48,6 +61,7 @@ export async function uploadFiles(files: FileList | File[]) {
   Array.from(files).forEach((f) => form.append("files", f));
   const res = await fetch(`${API_BASE}/api/documents/upload`, {
     method: "POST",
+    headers: apiHeaders(),
     body: form,
   });
   if (!res.ok) throw new Error("Upload failed");
@@ -57,7 +71,7 @@ export async function uploadFiles(files: FileList | File[]) {
 export async function toggleMount(name: string, mounted: boolean) {
   const res = await fetch(`${API_BASE}/api/documents/${encodeURIComponent(name)}/mount`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: apiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ mounted }),
   });
   if (!res.ok) throw new Error("Mount toggle failed");
@@ -67,19 +81,23 @@ export async function toggleMount(name: string, mounted: boolean) {
 export async function deleteDocument(name: string) {
   const res = await fetch(`${API_BASE}/api/documents/${encodeURIComponent(name)}`, {
     method: "DELETE",
+    headers: apiHeaders({ "X-Confirm": "PURGE" }),
   });
   if (!res.ok) throw new Error("Delete failed");
   return res.json();
 }
 
 export async function clearAllDocuments() {
-  const res = await fetch(`${API_BASE}/api/documents`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/api/documents`, {
+    method: "DELETE",
+    headers: apiHeaders({ "X-Confirm": "PURGE" }),
+  });
   if (!res.ok) throw new Error("Clear failed");
   return res.json();
 }
 
 export async function fetchConversations() {
-  const res = await fetch(`${API_BASE}/api/conversations`);
+  const res = await fetch(`${API_BASE}/api/conversations`, { headers: apiHeaders() });
   if (!res.ok) throw new Error("Failed to load conversations");
   return res.json() as Promise<{ conversations: Conversation[] }>;
 }
@@ -87,7 +105,7 @@ export async function fetchConversations() {
 export async function createConversation(title?: string) {
   const res = await fetch(`${API_BASE}/api/conversations`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: apiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ title }),
   });
   if (!res.ok) throw new Error("Failed to create conversation");
@@ -97,6 +115,7 @@ export async function createConversation(title?: string) {
 export async function deleteConversation(id: string) {
   const res = await fetch(`${API_BASE}/api/conversations/${encodeURIComponent(id)}`, {
     method: "DELETE",
+    headers: apiHeaders(),
   });
   if (!res.ok) throw new Error("Failed to delete conversation");
   return res.json();
@@ -111,7 +130,7 @@ export async function streamChat(
 ) {
   const res = await fetch(`${API_BASE}/api/chat/stream`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: apiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ conversation_id: conversationId, message }),
   });
   if (!res.ok) {

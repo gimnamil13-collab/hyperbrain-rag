@@ -19,6 +19,11 @@ def chroma_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
 def client(chroma_dir: Path) -> TestClient:
     os.environ.setdefault("OPENAI_API_KEY", "sk-test-pytest-key")
     os.environ["RATE_LIMIT_PER_MINUTE"] = "0"
+    os.environ["CHROMA_DIR"] = str(chroma_dir)
+
+    from backend.app.core import config
+
+    config.settings.chroma_dir = str(chroma_dir)
 
     from backend.app.main import app
 
@@ -45,6 +50,7 @@ def isolate_runtime_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
     ingest._embeddings = None
 
     monkeypatch.setattr("backend.app.core.config.settings.openai_api_key", "sk-test-pytest-key")
+    monkeypatch.setattr("backend.app.core.config.settings.api_secret_key", "")
 
 
 @pytest.fixture

@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     allow_vercel_previews: bool = False
     rate_limit_per_minute: int = 60
+    api_secret_key: str = ""
+    max_upload_bytes: int = 10 * 1024 * 1024
 
     @property
     def cors_origin_list(self) -> list[str]:

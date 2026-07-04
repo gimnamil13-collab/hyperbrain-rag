@@ -137,6 +137,10 @@ export function AppShell() {
       if (res.skipped?.length) {
         notify.info(`이미 등록된 노드: ${res.skipped.join(", ")}`);
       }
+      if (res.rejected?.length) {
+        const names = res.rejected.map((r: { name: string; reason: string }) => r.name).join(", ");
+        notify.info(`업로드 거부: ${names}`);
+      }
       if (res.files === 0 && !res.skipped?.length) {
         notify.error("업로드할 유효한 파일이 없습니다");
       }

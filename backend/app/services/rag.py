@@ -48,11 +48,15 @@ def _get_llm(streaming: bool = False) -> ChatOpenAI:
 
 def retrieve_documents(question: str, active_sources: list[str] | None = None):
     vectorstore = get_vectorstore()
-    docs = vectorstore.similarity_search(question, k=settings.retrieval_k * 2)
+
+    if active_sources is not None and not active_sources:
+        return []
+
+    kwargs: dict = {"k": settings.retrieval_k}
     if active_sources is not None:
-        allowed = set(active_sources)
-        docs = [d for d in docs if d.metadata.get("source") in allowed]
-    return docs[: settings.retrieval_k]
+        kwargs["filter"] = {"source": {"$in": active_sources}}
+
+    return vectorstore.similarity_search(question, **kwargs)
 
 
 def format_context(docs) -> str:

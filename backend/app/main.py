@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.api import chat, documents
 from backend.app.core.config import settings
+from backend.app.middleware.auth import ApiKeyMiddleware
 from backend.app.middleware.rate_limit import RateLimitMiddleware
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ if settings.allow_vercel_previews:
 
 app.add_middleware(CORSMiddleware, **cors_kwargs)
 app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.rate_limit_per_minute)
+app.add_middleware(ApiKeyMiddleware)
 
 app.include_router(documents.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")

@@ -50,6 +50,6 @@ def test_mount_toggle(client, monkeypatch):
 def test_clear_all_documents(client, monkeypatch):
     monkeypatch.setattr("backend.app.api.documents.reset_index", lambda: None)
 
-    res = client.delete("/api/documents")
+    res = client.delete("/api/documents", headers={"X-Confirm": "PURGE"})
     assert res.status_code == 200
     assert res.json()["status"] == "cleared"

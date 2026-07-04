@@ -2,16 +2,27 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
 
 API = "http://localhost:8000"
 UI = "http://localhost:3000"
+API_KEY = os.environ.get("API_SECRET_KEY", "")
 
 passed = 0
 failed = 0
 skipped = 0
+
+
+def _headers(extra: dict[str, str] | None = None) -> dict[str, str]:
+    headers = {"Content-Type": "application/json"}
+    if extra:
+        headers.update(extra)
+    if API_KEY:
+        headers["X-API-Key"] = API_KEY
+    return headers
 
 
 def ok(name: str, detail: str = "") -> None:
@@ -35,11 +46,14 @@ def skip(name: str, reason: str) -> None:
 def request(method: str, path: str, body: dict | None = None, timeout: int = 30) -> tuple[int, dict | str]:
     url = f"{API}{path}"
     data = json.dumps(body).encode() if body is not None else None
+    headers = _headers() if data is not None else _headers({})
+    if data is None:
+        headers.pop("Content-Type", None)
     req = urllib.request.Request(
         url,
         data=data,
         method=method,
-        headers={"Content-Type": "application/json"} if data else {},
+        headers=headers,
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -137,7 +151,7 @@ def test_chat_stream() -> None:
 
     url = f"{API}/api/chat/stream"
     body = json.dumps({"conversation_id": cid, "message": "PARA란?"}).encode()
-    req = urllib.request.Request(url, data=body, method="POST", headers={"Content-Type": "application/json"})
+    req = urllib.request.Request(url, data=body, method="POST", headers=_headers())
     try:
         with urllib.request.urlopen(req, timeout=90) as resp:
             text = resp.read().decode()
