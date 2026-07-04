@@ -1,0 +1,18 @@
+{
+  "name": "hyperbrain-rag",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n API,UI -c cyan,magenta \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": ".venv\\Scripts\\python.exe -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000",
+    "dev:frontend": "cd frontend && set BROWSER=none&& npm run dev",
+    "install:all": "npm install && cd frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "smoke:test": ".venv\\Scripts\\python.exe scripts\\smoke_test.py",
+    "test": ".venv\\Scripts\\python.exe -m pytest",
+    "test:install": ".venv\\Scripts\\pip install -r backend\\requirements-dev.txt"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

@@ -1,0 +1,16 @@
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+
+[server]
+headless = false
+address = "localhost"
+enableCORS = false
+enableXsrfProtection = true
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = true
+
+[theme]
+base = "dark"
