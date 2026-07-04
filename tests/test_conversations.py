@@ -28,3 +28,16 @@ def test_delete_conversation(client):
 def test_delete_missing_conversation_returns_404(client):
     res = client.delete("/api/conversations/nonexistent-id")
     assert res.status_code == 404
+
+
+def test_append_message_with_sources(client):
+    from backend.app.services.conversations import append_message, get_conversation
+
+    created = client.post("/api/conversations", json={"title": "Sources test"}).json()
+    sources = [{"id": 1, "source": "para_method.md", "page": None, "preview": "p", "content": "c"}]
+    append_message(created["id"], "assistant", "partial answer", sources=sources)
+
+    conv = get_conversation(created["id"])
+    assert conv is not None
+    assert len(conv["messages"]) == 1
+    assert conv["messages"][0]["sources"] == sources

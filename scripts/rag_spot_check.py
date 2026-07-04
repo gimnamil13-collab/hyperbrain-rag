@@ -58,7 +58,8 @@ def chat(question: str) -> dict:
 
     answer = "".join(tokens).strip()
     source_names = [s.get("source", "?") for s in sources]
-    return {"question": question, "answer": answer, "sources": source_names}
+    has_citation = "[" in answer and "]" in answer
+    return {"question": question, "answer": answer, "sources": source_names, "has_citation": has_citation}
 
 
 def main() -> int:
@@ -69,16 +70,18 @@ def main() -> int:
             result = chat(q)
             has_answer = len(result["answer"]) > 20
             has_sources = len(result["sources"]) > 0
-            status = "OK" if has_answer and has_sources else "WEAK"
+            has_citation = result.get("has_citation", False)
+            status = "OK" if has_answer and has_sources and has_citation else "WEAK"
             if status == "OK":
                 ok += 1
             print(f"[{status}] {q}")
             print(f"  sources: {', '.join(result['sources']) or '(none)'}")
+            print(f"  citation: {'yes' if result.get('has_citation') else 'no'}")
             print(f"  preview: {result['answer'][:120]}...")
             print()
         except Exception as exc:
             print(f"[FAIL] {q} | {exc}\n")
-    print(f"=== {ok}/{len(QUESTIONS)} with answer+sources ===\n")
+    print(f"=== {ok}/{len(QUESTIONS)} with answer+sources+citation ===\n")
     return 0 if ok >= 2 else 1
 
 

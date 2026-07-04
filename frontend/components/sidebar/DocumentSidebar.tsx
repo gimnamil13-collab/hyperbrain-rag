@@ -148,7 +148,7 @@ export function DocumentSidebar({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="노드 검색..."
-            className="cyber-input w-full py-2 pl-10 pr-3 text-xs"
+            className="cyber-input w-full py-2 !pl-10 pr-3 text-xs"
           />
         </div>
       </div>

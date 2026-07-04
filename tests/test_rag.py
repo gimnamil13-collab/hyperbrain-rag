@@ -32,3 +32,20 @@ def test_retrieve_documents_uses_metadata_filter(monkeypatch):
         filter={"source": {"$in": ["a.md", "b.md"]}},
     )
     assert result == ["doc-a"]
+
+
+def test_resolve_sources_builds_from_retrieval(monkeypatch):
+    mock_doc = MagicMock()
+    mock_doc.metadata = {"source": "a.md", "page": None}
+    mock_doc.page_content = "sample content for resolve"
+
+    mock_store = MagicMock()
+    mock_store.similarity_search.return_value = [mock_doc]
+    monkeypatch.setattr(rag, "get_vectorstore", lambda: mock_store)
+    monkeypatch.setattr(rag, "mounted_sources", lambda sources: sources)
+
+    resolved = rag.resolve_sources("query", ["a.md"])
+
+    assert len(resolved) == 1
+    assert resolved[0]["source"] == "a.md"
+    assert "sample content" in resolved[0]["content"]

@@ -121,18 +121,37 @@ export async function deleteConversation(id: string) {
   return res.json();
 }
 
+export class StreamChatAborted extends Error {
+  readonly name = "StreamChatAborted";
+}
+
+function isAbortError(err: unknown): boolean {
+  return (
+    err instanceof StreamChatAborted ||
+    (err instanceof DOMException && err.name === "AbortError")
+  );
+}
+
 export async function streamChat(
   conversationId: string,
   message: string,
   onToken: (token: string) => void,
   onSources: (sources: SourceItem[]) => void,
   onError: (msg: string) => void,
+  signal?: AbortSignal,
 ) {
-  const res = await fetch(`${API_BASE}/api/chat/stream`, {
-    method: "POST",
-    headers: apiHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ conversation_id: conversationId, message }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/chat/stream`, {
+      method: "POST",
+      headers: apiHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ conversation_id: conversationId, message }),
+      signal,
+    });
+  } catch (err) {
+    if (signal?.aborted || isAbortError(err)) throw new StreamChatAborted();
+    throw err;
+  }
   if (!res.ok) {
     const err = await res.text();
     throw new Error(err || "Chat failed");
@@ -141,24 +160,32 @@ export async function streamChat(
   if (!reader) throw new Error("No stream");
   const decoder = new TextDecoder();
   let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-    for (const line of lines) {
-      if (!line.startsWith("data: ")) continue;
-      const payload = line.slice(6).trim();
-      if (payload === "[DONE]") return;
-      try {
-        const data = JSON.parse(payload);
-        if (data.type === "token") onToken(data.content);
-        if (data.type === "sources") onSources(data.sources);
-        if (data.type === "error") onError(data.message);
-      } catch {
-        /* skip malformed */
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const payload = line.slice(6).trim();
+        if (payload === "[DONE]") return;
+        try {
+          const data = JSON.parse(payload);
+          if (data.type === "token") onToken(data.content);
+          if (data.type === "sources") onSources(data.sources);
+          if (data.type === "error") onError(data.message);
+        } catch {
+          /* skip malformed */
+        }
       }
     }
+  } catch (err) {
+    if (signal?.aborted || isAbortError(err)) {
+      await reader.cancel().catch(() => {});
+      throw new StreamChatAborted();
+    }
+    throw err;
   }
 }

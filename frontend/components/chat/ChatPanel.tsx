@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Send, Sparkles } from "lucide-react";
+import { Loader2, Send, Sparkles, Square } from "lucide-react";
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
@@ -13,6 +13,7 @@ type Props = {
   canChat: boolean;
   streaming: boolean;
   onSend: (text: string) => void;
+  onCancel: () => void;
   activeCitation: number | null;
   onCitationClick: (id: number) => void;
   className?: string;
@@ -88,6 +89,7 @@ export function ChatPanel({
   canChat,
   streaming,
   onSend,
+  onCancel,
   activeCitation,
   onCitationClick,
   className,
@@ -173,11 +175,17 @@ export function ChatPanel({
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.92 }}
-            onClick={submit}
-            disabled={!canChat || streaming || !input.trim()}
-            className="neon-button flex items-center gap-1 px-4 disabled:opacity-40"
+            onClick={streaming ? onCancel : submit}
+            disabled={!canChat || (!streaming && !input.trim())}
+            aria-label={streaming ? "스트리밍 중지" : "질의 전송"}
+            className={cn(
+              "flex items-center gap-1 px-4 disabled:opacity-40",
+              streaming
+                ? "rounded-lg border border-red-500/50 bg-red-950/40 text-red-300 hover:border-red-400 hover:bg-red-950/60"
+                : "neon-button",
+            )}
           >
-            <Send className="h-4 w-4" />
+            {streaming ? <Square className="h-4 w-4 fill-current" /> : <Send className="h-4 w-4" />}
           </motion.button>
         </div>
       </div>

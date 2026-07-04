@@ -2,6 +2,8 @@
 
 Sci-Fi cyber-tech Second Brain RAG — **Next.js 14 + FastAPI**
 
+**Repository:** https://github.com/gimnamil13-collab/hyperbrain-rag
+
 ![HYPERBRAIN RAG demo](docs/demo.gif)
 
 ## Stack
@@ -23,6 +25,8 @@ Sci-Fi cyber-tech Second Brain RAG — **Next.js 14 + FastAPI**
 1. `.env`에 `OPENAI_API_KEY=sk-...` 설정
 2. **`실행.bat`** 더블클릭
 3. 브라우저 `http://localhost:3000`
+
+UI가 스타일 없이 깨져 보이면 `실행.bat clean`으로 `.next` 캐시를 지운 뒤 재시작하세요.
 
 ## Manual Dev
 
@@ -78,62 +82,8 @@ npm run test
 
 커버리지: health, documents CRUD/mount, conversations CRUD, chat SSE (token + sources + DONE).
 
-## Deploy (Option B)
+## Deploy
 
-### Architecture
+로컬 전용 도구입니다. Railway/Vercel 실배포 설정 파일은 제거되었습니다.
 
-```
-Vercel (frontend)  →  NEXT_PUBLIC_API_URL  →  Railway / Render (FastAPI)
-```
-
-### 1. Backend — Railway (recommended)
-
-1. [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-2. Root directory: repo root (not `frontend/`)
-3. Railway reads `railway.toml` automatically
-4. **Variables** (Settings → Variables):
-
-| Variable | Value |
-|----------|-------|
-| `OPENAI_API_KEY` | `sk-...` |
-| `CORS_ORIGINS` | `https://your-app.vercel.app` |
-| `ALLOW_VERCEL_PREVIEWS` | `true` |
-| `CHROMA_DIR` | `/tmp/hyperbrain_rag/chroma_db` |
-| `RATE_LIMIT_PER_MINUTE` | `60` |
-
-5. Deploy → copy public URL (e.g. `https://hyperbrain-rag-production.up.railway.app`)
-6. Health check: `GET /api/health`
-
-### 2. Backend — Render (alternative)
-
-1. [render.com](https://render.com) → **New Blueprint** → connect repo
-2. Uses `render.yaml` — review env vars, then apply
-3. Or manual: **Web Service** → Build: `pip install -r backend/requirements.txt` → Start: `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
-4. Set `PYTHONPATH=.` and the same env vars as Railway
-
-### 3. Frontend — Vercel
-
-1. [vercel.com](https://vercel.com) → **Import** GitHub repo
-2. **Root Directory**: `frontend`
-3. **Environment Variable**:
-
-| Variable | Value |
-|----------|-------|
-| `NEXT_PUBLIC_API_URL` | Railway/Render backend URL (no trailing slash) |
-
-4. Deploy → open `https://your-app.vercel.app`
-
-### Production notes
-
-- **Ephemeral storage**: Railway/Render free tiers reset Chroma DB and uploads on redeploy. Users must click **샘플 노드 로드** after each cold start.
-- **CORS**: Set `CORS_ORIGINS` to your Vercel production URL. Enable `ALLOW_VERCEL_PREVIEWS=true` for preview deployments.
-- **Rate limiting**: 60 req/min per IP by default (`RATE_LIMIT_PER_MINUTE`). Health endpoint is exempt.
-- **Secrets**: Never commit `.env`. API key lives only on the backend host.
-
-### Local ↔ Production env reference
-
-See `backend/.env.example` and `frontend/.env.local.example`.
-
-## Legacy
-
-Streamlit UI and `src/` removed. Use `backend/` + `frontend/` only.
+환경 변수 참고: `backend/.env.example`, `frontend/.env.local.example`

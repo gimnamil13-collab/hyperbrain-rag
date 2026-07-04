@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     chunk_size: int = 800
     chunk_overlap: int = 120
-    retrieval_k: int = 5
+    retrieval_k: int = 6
     max_history_messages: int = 12
     chroma_dir: str = str(_default_chroma_dir())
     cors_origins: str = "http://localhost:3000"

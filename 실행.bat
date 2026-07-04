@@ -23,6 +23,18 @@ if errorlevel 1 (
     goto FAIL
 )
 
+set "CLEAN_NEXT="
+if /I "%~1"=="clean" set "CLEAN_NEXT=1"
+if defined HYPERBRAIN_CLEAN_NEXT set "CLEAN_NEXT=1"
+if exist "frontend\.next\BUILD_ID" set "CLEAN_NEXT=1"
+
+if defined CLEAN_NEXT (
+    if exist "frontend\.next" (
+        echo [INFO] Clearing frontend .next cache...
+        rmdir /s /q "frontend\.next" 2>nul
+    )
+)
+
 if not exist ".venv\Scripts\python.exe" (
     echo [INFO] Creating Python venv...
     python -m venv .venv

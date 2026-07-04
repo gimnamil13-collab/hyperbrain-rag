@@ -46,11 +46,19 @@ def create_conversation(title: str | None = None) -> dict:
     return conv
 
 
-def append_message(conversation_id: str, role: str, content: str) -> dict | None:
+def append_message(
+    conversation_id: str,
+    role: str,
+    content: str,
+    sources: list[dict] | None = None,
+) -> dict | None:
     data = _load_all()
     for conv in data.get("conversations", []):
         if conv["id"] == conversation_id:
-            conv["messages"].append({"role": role, "content": content})
+            message: dict = {"role": role, "content": content}
+            if sources:
+                message["sources"] = sources
+            conv["messages"].append(message)
             conv["updated_at"] = datetime.now(timezone.utc).isoformat()
             if role == "user" and conv["title"] == "NEW SESSION":
                 conv["title"] = content[:40] + ("..." if len(content) > 40 else "")

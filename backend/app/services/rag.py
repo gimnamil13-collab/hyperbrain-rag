@@ -11,12 +11,15 @@ from backend.app.core.config import settings
 from backend.app.services.ingest import get_vectorstore
 from backend.app.services.mount_state import mounted_sources
 
-SYSTEM_PROMPT = """You are HYPERBRAIN — a sci-fi personal knowledge AI.
-Answer using ONLY the provided context and conversation history.
-If the answer is not in the context, say so clearly and suggest what knowledge to add.
-Do not invent facts. Prefer citing sources as [1], [2] when the context supports it.
-Match the user's language (Korean or English).
-Be concise and accurate."""
+SYSTEM_PROMPT = """You are HYPERBRAIN — a personal knowledge assistant for a Second Brain RAG system.
+Answer using ONLY the provided knowledge context and conversation history.
+
+Rules:
+- Match the user's language (Korean or English).
+- Lead with a direct answer, then add brief supporting detail.
+- When the context supports a claim, cite chunk labels exactly as [1], [2], etc.
+- If the answer is not in the context, say clearly that no relevant knowledge was found and suggest what document or topic to add.
+- Do not invent facts, names, or dates not present in the context."""
 
 
 @dataclass
@@ -90,6 +93,12 @@ def build_sources(docs) -> list[dict]:
             }
         )
     return sources
+
+
+def resolve_sources(question: str, all_sources: list[str]) -> list[dict]:
+    active = mounted_sources(all_sources)
+    docs = retrieve_documents(question, active)
+    return build_sources(docs)
 
 
 def trim_history(chat_history: list[dict]) -> list[dict]:
