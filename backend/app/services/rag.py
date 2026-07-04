@@ -17,7 +17,8 @@ Answer using ONLY the provided knowledge context and conversation history.
 Rules:
 - Match the user's language (Korean or English).
 - Lead with a direct answer, then add brief supporting detail.
-- When the context supports a claim, cite chunk labels exactly as [1], [2], etc.
+- When context is provided, include at least one inline citation using chunk labels exactly as [1], [2], etc.
+- Place each citation immediately after the claim it supports.
 - If the answer is not in the context, say clearly that no relevant knowledge was found and suggest what document or topic to add.
 - Do not invent facts, names, or dates not present in the context."""
 

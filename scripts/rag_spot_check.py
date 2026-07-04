@@ -2,9 +2,30 @@
 from __future__ import annotations
 
 import json
+import urllib.parse
 import urllib.request
 
 API = "http://localhost:8000"
+
+
+def mount_all_documents() -> None:
+    """Ensure every indexed document is mounted — spot check needs full corpus."""
+    req = urllib.request.Request(f"{API}/api/documents", method="GET")
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = json.loads(resp.read().decode())
+    for doc in data.get("documents", []):
+        name = doc.get("name")
+        if not name or doc.get("mounted"):
+            continue
+        body = json.dumps({"mounted": True}).encode()
+        mount_req = urllib.request.Request(
+            f"{API}/api/documents/{urllib.parse.quote(name, safe='')}/mount",
+            data=body,
+            method="PATCH",
+            headers={"Content-Type": "application/json"},
+        )
+        urllib.request.urlopen(mount_req, timeout=30)
+
 
 QUESTIONS = [
     "PARA 방법론이란?",
@@ -64,6 +85,10 @@ def chat(question: str) -> dict:
 
 def main() -> int:
     print("\n=== RAG Spot Check ===\n")
+    try:
+        mount_all_documents()
+    except Exception as exc:
+        print(f"[WARN] Could not sync mount state: {exc}\n")
     ok = 0
     for q in QUESTIONS:
         try:
