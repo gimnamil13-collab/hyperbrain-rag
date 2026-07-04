@@ -141,15 +141,6 @@ export function useChat(options: UseChatOptions = {}) {
             return { ...prev, messages: msgs };
           });
           if (updatedMessages) syncConvMessages(convId, updatedMessages);
-          await new Promise((resolve) => setTimeout(resolve, 250));
-          try {
-            const data = await fetchConversations();
-            setConversations(data.conversations);
-            const updated = data.conversations.find((c) => c.id === convId);
-            if (updated) setActiveConv(updated);
-          } catch {
-            /* keep local partial if sync fails */
-          }
         }
       } else {
         notify.error("질의 처리 실패 · API 키와 노드 등록을 확인하세요");
