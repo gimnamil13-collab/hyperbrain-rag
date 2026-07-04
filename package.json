@@ -9,6 +9,7 @@
     "install:all": "npm install && cd frontend && npm install",
     "build": "cd frontend && npm run build",
     "smoke:test": ".venv\\Scripts\\python.exe scripts\\smoke_test.py",
+    "backup": ".venv\\Scripts\\python.exe scripts\\backup_data.py",
     "test": ".venv\\Scripts\\python.exe -m pytest",
     "test:install": ".venv\\Scripts\\pip install -r backend\\requirements-dev.txt"
   },

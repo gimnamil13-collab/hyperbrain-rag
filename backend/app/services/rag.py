@@ -14,8 +14,9 @@ from backend.app.services.mount_state import mounted_sources
 SYSTEM_PROMPT = """You are HYPERBRAIN — a sci-fi personal knowledge AI.
 Answer using ONLY the provided context and conversation history.
 If the answer is not in the context, say so clearly and suggest what knowledge to add.
+Do not invent facts. Prefer citing sources as [1], [2] when the context supports it.
 Match the user's language (Korean or English).
-Be concise, accurate, and reference sources as [1], [2] when helpful."""
+Be concise and accurate."""
 
 
 @dataclass
@@ -91,9 +92,16 @@ def build_sources(docs) -> list[dict]:
     return sources
 
 
+def trim_history(chat_history: list[dict]) -> list[dict]:
+    limit = settings.max_history_messages
+    if limit <= 0 or len(chat_history) <= limit:
+        return chat_history
+    return chat_history[-limit:]
+
+
 def to_langchain_messages(chat_history: list[dict]) -> list[BaseMessage]:
     messages: list[BaseMessage] = []
-    for turn in chat_history:
+    for turn in trim_history(chat_history):
         role, content = turn.get("role"), turn.get("content", "")
         if role == "user":
             messages.append(HumanMessage(content=content))

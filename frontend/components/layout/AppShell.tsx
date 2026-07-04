@@ -31,6 +31,22 @@ const RIGHT_WIDTH = 340;
 const STORAGE_LEFT = "hb_left_open";
 const STORAGE_RIGHT = "hb_right_open";
 
+const REJECT_REASON_LABELS: Record<string, string> = {
+  invalid_filename: "잘못된 파일명",
+  unsupported_extension: "지원하지 않는 확장자 (PDF/MD/TXT)",
+  unsupported_mime: "MIME 타입 불일치",
+  file_too_large: "파일 크기 초과 (10MB)",
+  invalid_path: "잘못된 저장 경로",
+};
+
+function formatRejected(
+  rejected: Array<{ name: string; reason: string }>,
+): string {
+  return rejected
+    .map((r) => `${r.name}: ${REJECT_REASON_LABELS[r.reason] ?? r.reason}`)
+    .join(" · ");
+}
+
 export function AppShell() {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -80,7 +96,20 @@ export function AppShell() {
         const health = await fetch(`${API_BASE}/api/health`);
         if (!health.ok) throw new Error("API offline");
         setApiOnline(true);
-        await refreshDocs();
+        const docsData = await fetchDocuments();
+        setDocuments(docsData.documents);
+        if (docsData.documents.length === 0) {
+          try {
+            const ingested = await ingestSamples();
+            const refreshed = await fetchDocuments();
+            setDocuments(refreshed.documents);
+            if (ingested.status === "ok") {
+              notify.info(`샘플 노드 자동 로드 · ${ingested.chunks}개 구간`);
+            }
+          } catch {
+            /* samples optional on boot */
+          }
+        }
         const data = await fetchConversations();
         setConversations(data.conversations);
         if (data.conversations.length === 0) {
@@ -138,10 +167,9 @@ export function AppShell() {
         notify.info(`이미 등록된 노드: ${res.skipped.join(", ")}`);
       }
       if (res.rejected?.length) {
-        const names = res.rejected.map((r: { name: string; reason: string }) => r.name).join(", ");
-        notify.info(`업로드 거부: ${names}`);
+        notify.info(`업로드 거부 · ${formatRejected(res.rejected)}`);
       }
-      if (res.files === 0 && !res.skipped?.length) {
+      if (res.files === 0 && !res.skipped?.length && !res.rejected?.length) {
         notify.error("업로드할 유효한 파일이 없습니다");
       }
     } catch {
@@ -206,6 +234,9 @@ export function AppShell() {
           setActiveSources(srcs);
           setRightOpen(true);
           localStorage.setItem(STORAGE_RIGHT, "true");
+          if (window.matchMedia("(max-width: 1023px)").matches) {
+            setMobilePanel("sources");
+          }
           setActiveConv((prev) => {
             if (!prev) return prev;
             const msgs = [...prev.messages];
@@ -308,11 +339,20 @@ export function AppShell() {
     }
   };
 
-  const mobileOnly = (panel: MobilePanel) =>
-    cn(
-      "min-h-0 h-full lg:hidden",
-      mobilePanel === panel ? "flex flex-1 flex-col" : "hidden",
-    );
+  const sidebarProps = {
+    conversations,
+    activeConvId: activeConv?.id ?? null,
+    documents,
+    loading,
+    onNewSession: handleNewSession,
+    onSelectSession: handleSelectSession,
+    onDeleteSession: handleDeleteSession,
+    onIngestSamples: handleIngestSamples,
+    onUpload: handleUpload,
+    onToggleMount: handleToggleMount,
+    onDelete: handleDelete,
+    onClearAll: handleClearAll,
+  };
 
   return (
     <>
@@ -324,51 +364,17 @@ export function AppShell() {
       )}
       <div className="grid-bg flex h-[100dvh] flex-col gap-2 p-2 md:gap-2 md:p-2">
         <div className="flex min-h-0 flex-1 gap-1 md:gap-2">
-          {/* Desktop: collapsible left */}
           <CollapsiblePanel
             side="left"
             open={leftOpen}
             onToggle={toggleLeft}
             width={LEFT_WIDTH}
             label="PANEL"
+            mobileVisible={mobilePanel === "nodes"}
           >
-            <LeftSidebar
-              conversations={conversations}
-              activeConvId={activeConv?.id ?? null}
-              documents={documents}
-              loading={loading}
-              onNewSession={handleNewSession}
-              onSelectSession={handleSelectSession}
-              onDeleteSession={handleDeleteSession}
-              onIngestSamples={handleIngestSamples}
-              onUpload={handleUpload}
-              onToggleMount={handleToggleMount}
-              onDelete={handleDelete}
-              onClearAll={handleClearAll}
-              className="h-full"
-            />
+            <LeftSidebar {...sidebarProps} className="h-full w-full" />
           </CollapsiblePanel>
 
-          {/* Mobile: left panel */}
-          <div className={mobileOnly("nodes")}>
-            <LeftSidebar
-              conversations={conversations}
-              activeConvId={activeConv?.id ?? null}
-              documents={documents}
-              loading={loading}
-              onNewSession={handleNewSession}
-              onSelectSession={handleSelectSession}
-              onDeleteSession={handleDeleteSession}
-              onIngestSamples={handleIngestSamples}
-              onUpload={handleUpload}
-              onToggleMount={handleToggleMount}
-              onDelete={handleDelete}
-              onClearAll={handleClearAll}
-              className="h-full w-full"
-            />
-          </div>
-
-          {/* Chat — always flex-1, largest */}
           <div
             className={cn(
               "min-h-0 min-w-0 flex-1 flex-col",
@@ -387,31 +393,21 @@ export function AppShell() {
             />
           </div>
 
-          {/* Desktop: collapsible right */}
           <CollapsiblePanel
             side="right"
             open={rightOpen}
             onToggle={toggleRight}
             width={RIGHT_WIDTH}
             label="SOURCE"
+            mobileVisible={mobilePanel === "sources"}
           >
-            <SourcePanel
-              sources={activeSources}
-              activeId={activeCitation}
-              onSelect={openSources}
-              className="h-full"
-            />
-          </CollapsiblePanel>
-
-          {/* Mobile: sources panel */}
-          <div className={mobileOnly("sources")}>
             <SourcePanel
               sources={activeSources}
               activeId={activeCitation}
               onSelect={openSources}
               className="h-full w-full"
             />
-          </div>
+          </CollapsiblePanel>
         </div>
 
         <MobileNav

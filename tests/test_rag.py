@@ -11,6 +11,14 @@ def test_retrieve_documents_empty_when_no_active_sources(monkeypatch):
     assert docs == []
 
 
+def test_trim_history_keeps_recent_messages():
+    history = [{"role": "user", "content": f"msg-{i}"} for i in range(20)]
+    trimmed = rag.trim_history(history)
+    assert len(trimmed) == rag.settings.max_history_messages
+    assert trimmed[0]["content"] == "msg-8"
+    assert trimmed[-1]["content"] == "msg-19"
+
+
 def test_retrieve_documents_uses_metadata_filter(monkeypatch):
     mock_store = MagicMock()
     mock_store.similarity_search.return_value = ["doc-a"]
